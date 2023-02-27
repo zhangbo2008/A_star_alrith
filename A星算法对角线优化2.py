@@ -1,4 +1,4 @@
-
+#========这个版本,可以让目标尽量走直线到达目的地. 因为从现实中,走水平和数值比对角线的欧氏距离要近. 所以加入这个惩罚项是对的. 所以我打算加入方向惩罚项. 再一个缺陷是A*对于目标不可达的会死循环.
 
 '''
 看到项目中有一个A*算法,跟图有关,挺有意思.在游戏中很常用.
@@ -104,7 +104,7 @@ class A_star:
 
 
             # 结束点到当前带点的海明距离*10
-            self.h = (abs(endpoint.x - point.x) + abs(endpoint.y - point.y)) * 10  # 计算h值
+            self.h = (abs(endpoint.x - point.x) + abs(endpoint.y - point.y))   # 计算h值
             self.f = self.g + self.h  # f值就是q值.像强化学习里面的q. 价值函数.
 
         #寻找临近点, 然后返回这个点抽象之后的node
@@ -115,14 +115,17 @@ class A_star:
             nearpoint = Point(self.point.x + rl, self.point.y + ud) #表示这步走完到的点.
 
             # 下面为什么要加1 我们把权重写在这个地方. 就是后面+1,下面我修改这个为对角衰减类型, 新节点等于旧节点加一.
-            nearnode = A_star.Node(nearpoint, self.endpoint, self.g+1 )
+            # nearnode = A_star.Node(nearpoint, self.endpoint, self.g+1 )
 
             # #我修改的对角衰减类型.
-            # if 0 in [ud,rl]:
+            if 0 in [ud,rl]:
 
-            #      nearnode = A_star.Node(nearpoint, self.endpoint, self.g+1 )
-            # else:
-            #     nearnode = A_star.Node(nearpoint, self.endpoint, self.g + 1.4)
+                 nearnode = A_star.Node(nearpoint, self.endpoint, self.g+1 )
+            else:
+                nearnode = A_star.Node(nearpoint, self.endpoint, self.g + 1.4)
+                #因为海明距离差距是1.所以我们这里面1.4还要加1.
+                #经过试验这里面是2更好.因为我们这里面只要磨平海明距离h带来的偏向.
+                #大于2的时候都有太明显的偏向性. 取1.1到2都可以. 经过测试2还是相对更公平,更符合大众的开车惯性.尽量少转方向.
 
 
 
@@ -152,17 +155,12 @@ class A_star:
     def select_current(self):
         min=10000000
         node_temp = 0
-
         # 找到open表中 f值最小的节点.吧他当作下一步应该走到的位置!并且就这么走
         # 在记录表中记录下这个一个步奏.
         for ele in self.open_list:
             if ele.f < min:
                 min = ele.f
                 node_temp = ele
-
-
-
-
         self.path.append(node_temp)
         self.open_list.remove(node_temp)
         self.close_list.append(node_temp)
@@ -213,7 +211,8 @@ class A_star:
       
             node_temp = node.search_near(ud,rl) #在调用另一个类的方法时（不论是子类还是在类外定义的类），都要进行实例化才能调用函数
             if node_temp.point == end_point:
-                self.open_list=[node]
+                # node_temp.father = node
+                self.open_list=[node]#=========open_list记录node即可.用来逆推来画最优路线.
                 return 1 # 返回1表示已经不用再搜索了,返回0表示还没到终点.
             elif self.isin_closelist(node_temp):  # closelist表示搜索过的点.
                 continue
@@ -274,7 +273,6 @@ while  flag != 1 :
 
 #画出地图路径
 print("打印所有走过的点")
-
 for node_path in a_star.path:
     ss.end_draw_path(node_path.point)
 ss.map_show()
@@ -296,3 +294,5 @@ while tmp.father!=None:
 ss2.map_show()
 print('使用时间',time.time()-start)
 print('经历过多少个点',len(a_star.path))
+
+

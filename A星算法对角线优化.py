@@ -1,4 +1,4 @@
-#========这个版本,可以让目标尽量走直线到达目的地. 因为从现实中,走水平和数值比对角线的欧氏距离要近. 所以加入这个惩罚项是对的.
+#========这个版本,可以让目标尽量走直线到达目的地. 因为从现实中,走水平和数值比对角线的欧氏距离要近. 所以加入这个惩罚项是对的. 所以我打算加入方向惩罚项. 再一个缺陷是A*对于目标不可达的会死循环.
 
 '''
 看到项目中有一个A*算法,跟图有关,挺有意思.在游戏中很常用.
@@ -90,7 +90,8 @@ class map_2d:
         # 字符6表示开始和结束点.
     def end_draw(self,point):
         self.data[point.x][point.y] = 6
-
+    def end_draw_path(self,point):
+        self.data[point.x][point.y] = 7
 #A*算法的实现
 class A_star:
     # 设置node, 这些node作为地图中点的抽象,往list中放.
@@ -121,8 +122,10 @@ class A_star:
 
                  nearnode = A_star.Node(nearpoint, self.endpoint, self.g+1 )
             else:
-                nearnode = A_star.Node(nearpoint, self.endpoint, self.g + 2.4)
+                nearnode = A_star.Node(nearpoint, self.endpoint, self.g + 1.4)
                 #因为海明距离差距是1.所以我们这里面1.4还要加1.
+                #经过试验这里面是2更好.因为我们这里面只要磨平海明距离h带来的偏向.
+                #大于2的时候都有太明显的偏向性. 取1.1到2都可以. 经过测试2还是相对更公平,更符合大众的开车惯性.尽量少转方向.
 
 
 
@@ -213,6 +216,7 @@ class A_star:
       
             node_temp = node.search_near(ud,rl) #在调用另一个类的方法时（不论是子类还是在类外定义的类），都要进行实例化才能调用函数
             if node_temp.point == end_point:
+                self.open_list=[node]
                 return 1 # 返回1表示已经不用再搜索了,返回0表示还没到终点.
             elif self.isin_closelist(node_temp):  # closelist表示搜索过的点.
                 continue
@@ -274,7 +278,7 @@ while  flag != 1 :
 #画出地图路径
 print("打印所有走过的点")
 for node_path in a_star.path:
-    ss.end_draw(node_path.point)
+    ss.end_draw_path(node_path.point)
 ss.map_show()
 
 
@@ -289,7 +293,7 @@ endNode=a_star.open_list[-1]
 save=[]
 tmp=endNode
 while tmp.father!=None:
-    ss2.end_draw(tmp.point)
+    ss2.end_draw_path(tmp.point)
     tmp=tmp.father
 ss2.map_show()
 print('使用时间',time.time()-start)
